@@ -206,6 +206,34 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Non-filtered default: avoids mangling future ${...} in other resources. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <!-- Filter only the version file so ${project.version} is resolved. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>META-INF/agentscope/version.properties</include>
+                </includes>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>false</filtering>
+            </testResource>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>agentscope-test-version.properties</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
             <!-- Publish a test-jar so downstream modules (agentscope-harness) can reuse the
                  shared test fixtures (MockModel, MockToolkit, TestConstants, TestUtils). -->

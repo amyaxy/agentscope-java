@@ -15,7 +15,11 @@
  */
 package io.agentscope.core;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -26,12 +30,32 @@ import org.junit.jupiter.api.Test;
 class VersionTest {
 
     @Test
-    void testVersionConstant() {
-        // Verify version constant is set
-        Assertions.assertNotNull(Version.VERSION, "VERSION constant should not be null");
-        Assertions.assertFalse(Version.VERSION.isEmpty(), "VERSION constant should not be empty");
+    void testVersionConstant() throws IOException {
+        // Read the real project version from a Maven-filtered test resource.
+        Properties props = new Properties();
+        try (InputStream in =
+                getClass().getResourceAsStream("/agentscope-test-version.properties")) {
+            Assertions.assertNotNull(in, "test version.properties should exist on classpath");
+            props.load(in);
+        }
+        String expectedVersion = props.getProperty("version");
+        Assertions.assertNotNull(expectedVersion, "version property should be present");
+
+        // When Maven resource filtering was not run (e.g. running directly from an IDE), the
+        // value is an unfiltered ${project.version} literal and there is no real version to
+        // cross-check, so skip the strict assertions. CI runs Maven, so filtering always applies.
+        boolean filtered = !expectedVersion.contains("${");
+        Assumptions.assumeTrue(
+                filtered, "skipped: Maven resource filtering did not run (non-Maven/IDE run)");
+
+        // Strict cross-check: the runtime version must match the Maven project version exactly.
         Assertions.assertEquals(
-                "1.0.13-SNAPSHOT", Version.VERSION, "VERSION should match current version");
+                expectedVersion, Version.VERSION, "VERSION must match the Maven project version");
+
+        // Semantic version format check.
+        Assertions.assertTrue(
+                Version.VERSION.matches("\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?"),
+                "VERSION should be a valid semver: " + Version.VERSION);
     }
 
     @Test

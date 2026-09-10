@@ -15,6 +15,10 @@
  */
 package io.agentscope.core;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * AgentScope version and User-Agent information.
  *
@@ -23,11 +27,35 @@ package io.agentscope.core;
  */
 public final class Version {
 
-    /** AgentScope Java version */
-    public static final String VERSION = "1.0.13-SNAPSHOT";
+    private static final String VERSION_RESOURCE = "/META-INF/agentscope/version.properties";
+
+    /**
+     * AgentScope Java version.
+     *
+     * <p>Injected at build time by Maven resource filtering from {@code ${project.version}}.
+     */
+    public static final String VERSION = resolveVersion();
 
     private Version() {
         // Utility class - prevent instantiation
+    }
+
+    private static String resolveVersion() {
+        try (InputStream in = Version.class.getResourceAsStream(VERSION_RESOURCE)) {
+            if (in != null) {
+                Properties props = new Properties();
+                props.load(in);
+                String version = props.getProperty("version");
+                // Guard against an unfiltered ${project.version} literal, e.g. when running
+                // from an IDE that does not run Maven resource filtering.
+                if (version != null && !version.isBlank() && !version.startsWith("${")) {
+                    return version.trim();
+                }
+            }
+        } catch (IOException e) {
+            // Fall through to the fallback below.
+        }
+        return "unknown";
     }
 
     /**
