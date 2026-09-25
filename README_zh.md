@@ -98,7 +98,7 @@ AgentScope Java 2.0 是面向企业级、分布式、生产环境的智能体框
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-harness</artifactId>
-    <version>2.0.3</version>
+    <version>2.0.4</version>
 </dependency>
 ```
 
@@ -108,7 +108,7 @@ AgentScope Java 2.0 是面向企业级、分布式、生产环境的智能体框
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-extensions-model-dashscope</artifactId>
-    <version>2.0.3</version>
+    <version>2.0.4</version>
 </dependency>
 ```
 <!-- AGENTSCOPE_QUICKSTART_VERSION:end -->
