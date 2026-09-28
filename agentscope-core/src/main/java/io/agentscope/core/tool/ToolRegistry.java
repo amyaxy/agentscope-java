@@ -45,16 +45,74 @@ class ToolRegistry {
     /**
      * Register a tool with its metadata.
      *
+     * <p>Registering a name that is already bound to a <em>different</em> tool fails fast with an
+     * {@link IllegalStateException} unless {@code allowReplaceExisting} is explicitly set. This prevents
+     * silent shadowing (e.g. an MCP tool quietly replacing a local tool of the same name).
+     *
      * @param toolName Tool name
      * @param tool AgentTool implementation
      * @param registered RegisteredToolFunction wrapper with metadata
+     * @param allowReplaceExisting when true, an existing different tool under the same name is replaced.
+     *     Only pass true for deliberate replacements (e.g. {@code Toolkit.replaceAgentTool} or the
+     *     framework meta-tool rebind in {@code Toolkit.copy()}); passing true elsewhere would
+     *     reintroduce the silent-shadowing behavior this check exists to prevent.
+     * @throws IllegalStateException if the name is taken by a different tool and {@code
+     *     allowReplaceExisting} is false
      */
-    void registerTool(String toolName, AgentTool tool, RegisteredToolFunction registered) {
+    void registerTool(
+            String toolName,
+            AgentTool tool,
+            RegisteredToolFunction registered,
+            boolean allowReplaceExisting) {
         if (toolName == null || toolName.isBlank()) {
             throw new IllegalArgumentException("Tool name cannot be null or blank");
         }
+        AgentTool existing = tools.get(toolName);
+        if (existing != null && existing != tool && !allowReplaceExisting) {
+            throw new IllegalStateException(
+                    duplicateRegistrationMessage(toolName, existing, tool, registered));
+        }
         tools.put(toolName, tool);
         registeredTools.put(toolName, registered);
+    }
+
+    /**
+     * Register a tool with its metadata, failing fast on a name already bound to a different tool.
+     *
+     * @see #registerTool(String, AgentTool, RegisteredToolFunction, boolean)
+     */
+    void registerTool(String toolName, AgentTool tool, RegisteredToolFunction registered) {
+        registerTool(toolName, tool, registered, false);
+    }
+
+    /**
+     * Builds the user-facing message for a rejected duplicate registration. Includes the
+     * descriptions of both tools (and the incoming MCP client name when applicable) so the
+     * conflict can be diagnosed without guessing, plus the escape hatches.
+     */
+    private static String duplicateRegistrationMessage(
+            String toolName,
+            AgentTool existing,
+            AgentTool incoming,
+            RegisteredToolFunction registered) {
+        String incomingSource =
+                registered.getMcpClientName() == null
+                        ? "local tool"
+                        : "MCP tool from client '" + registered.getMcpClientName() + "'";
+        return "Tool '"
+                + toolName
+                + "' is already registered and will not be silently replaced."
+                + "  existing: ["
+                + existing.getDescription()
+                + "]  incoming: ["
+                + incomingSource
+                + ", description: "
+                + incoming.getDescription()
+                + "]. To resolve the name conflict: use Toolkit.replaceAgentTool(...) to replace"
+                + " intentionally, remove the existing tool first, or register the incoming tool"
+                + " (e.g. an MCP client) under a distinct name prefix such as toolNamePrefix."
+                + " Note: MCP tools are registered after local tools, so with the prefix disabled"
+                + " an MCP tool can otherwise shadow a same-named local tool.";
     }
 
     /**

@@ -284,7 +284,8 @@ class ToolkitTest {
         AgentTool first = namedAgentTool("remove_if_same_b");
         AgentTool second = namedAgentTool("remove_if_same_b");
         toolkit.registerAgentTool(first);
-        toolkit.registerAgentTool(second);
+        // Duplicate names fail fast since #3328; the replacement here is intentional.
+        toolkit.replaceAgentTool(second);
         assertFalse(
                 toolkit.removeToolIfSame("remove_if_same_b", first),
                 "stale instance after replace must return false");
@@ -420,12 +421,10 @@ class ToolkitTest {
         toolkit.createToolGroup("activeGroup", "Active tools", true);
         toolkit.createToolGroup("inactiveGroup", "Inactive tools", false);
 
-        // Register tools to different groups
+        // Register tools to the active group. (A second same-named registration used to be
+        // silently swallowed; since #3328 duplicates fail fast, so it is simply omitted here —
+        // the assertions below only exercise the "add" tool registered above.)
         toolkit.registration().tool(sampleTools).group("activeGroup").apply();
-
-        // Create a separate tool for inactive group
-        SampleTools inactiveTools = new SampleTools();
-        toolkit.registration().tool(inactiveTools).group("inactiveGroup").apply();
 
         // Get a tool from inactive group (should exist in registry)
         AgentTool tool = toolkit.getTool("add");

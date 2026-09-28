@@ -249,8 +249,16 @@ class ToolRegistryTest {
         AgentTool newTool = createMockTool("tool1", "New Description");
         RegisteredToolFunction newRegistered = new RegisteredToolFunction(newTool, null, null);
 
-        // Act
-        registry.registerTool("tool1", newTool, newRegistered);
+        // A duplicate name from a different tool now fails fast (issue #3328)...
+        IllegalStateException ex =
+                assertThrows(
+                        IllegalStateException.class,
+                        () -> registry.registerTool("tool1", newTool, newRegistered));
+        assertTrue(ex.getMessage().contains("tool1"));
+        assertEquals(mockTool1, registry.getTool("tool1"));
+
+        // ...while explicit replacement keeps the overwrite capability available.
+        registry.registerTool("tool1", newTool, newRegistered, true);
 
         // Assert
         assertEquals(newTool, registry.getTool("tool1"));
